@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YouTube2Transcript
 
-## Getting Started
+A focused, free single-video transcript tool and acquisition surface for
+[BulkTranscripts](https://bulktranscripts.co).
 
-First, run the development server:
+## Architecture
+
+The statically rendered Next.js frontend runs on Vercel. Its interactive tool calls
+`https://bulktranscripts.co/api/free-transcript` directly from the visitor's browser.
+There is deliberately no Vercel API proxy and no shared paid license key: the Railway
+backend must see the visitor's actual network identity so its device/IP fair-use limits
+remain effective.
+
+The backend endpoint accepts only direct YouTube video URLs. Playlist and channel URLs
+receive a structured handoff to the BulkTranscripts web app. It shares the existing
+extraction engine and transcript cache, but has its own hourly rate bucket and telemetry
+surface.
+
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. The production backend explicitly permits localhost for
+this route, so no local backend is required for a normal smoke test.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Optional build-time variables:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_TRANSCRIPT_ENDPOINT` | Override the transcript endpoint for local testing |
+| `NEXT_PUBLIC_EVENTS_ENDPOINT` | Override the privacy-safe event endpoint |
+| `NEXT_PUBLIC_CHROME_EXTENSION_URL` | Show the live Chrome CTA once the Web Store listing is approved |
 
-## Learn More
+## Deployment
 
-To learn more about Next.js, take a look at the following resources:
+1. Import `github.com/pratie/youtube2transcript` into Vercel.
+2. Keep the detected framework as Next.js and deploy from `main`.
+3. Add both `youtube2transcript.xyz` and `www.youtube2transcript.xyz` to the Vercel project.
+4. In Hostinger DNS, add the exact apex and `www` records Vercel displays.
+5. Set the apex domain as primary and redirect `www` to it.
+6. Add `youtube2transcript.xyz` as a Domain Property in Google Search Console, verify its
+   TXT record in Hostinger, and submit `https://youtube2transcript.xyz/sitemap.xml`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Vercel will provision TLS after DNS verification and automatically deploy future pushes.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Verification
 
-## Deploy on Vercel
+```bash
+npm run lint
+npm run build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+After deployment, verify `/`, `/privacy`, `/terms`, `/robots.txt`, `/sitemap.xml`,
+`/manifest.webmanifest`, and one real transcript request.
