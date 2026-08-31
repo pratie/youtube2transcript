@@ -3,7 +3,7 @@ import ChromeExtensionLink from "@/components/chrome-extension-link";
 import { BULKTRANSCRIPTS_URL, CHROME_EXTENSION_URL, SITE_NAME, SITE_URL } from "@/lib/constants";
 
 const faq = [
-  ["Is YouTube To Transcript free to use?", "Yes. Paste one public YouTube video and start without an account or credit card. Fair-use limits protect the free service. For channels and playlists, use BulkTranscripts."],
+  ["Is YouTube To Transcript free to use?", "Yes. Paste one public YouTube video and start without an account or credit card. Fair-use limits protect the free service. Need 100+ videos, a channel or a playlist? Use BulkTranscripts for bulk extraction."],
   ["How do I access the transcript after generating it?", "The transcript appears directly below the video. You can search it, copy it, turn timestamps on or off, or download TXT, SRT and VTT files."],
   ["Can I translate the transcript to other languages?", "The tool returns the caption language available for the video. Translation and larger language workflows are available through BulkTranscripts."],
   ["Is there a limit to the length of the video I can transcribe?", "Long videos generally work when YouTube provides captions, although retrieval time depends on the video's caption track."],

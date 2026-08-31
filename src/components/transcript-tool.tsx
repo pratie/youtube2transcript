@@ -317,8 +317,8 @@ export default function TranscriptTool() {
                 </div>
               </div>
               <a className="bulk-mini-card" href={`${BULKTRANSCRIPTS_URL}/?source=youtube2transcript#pricing`}>
-                <span>Need the whole channel?</span>
-                <strong>Extract it with BulkTranscripts <span aria-hidden="true">↗</span></strong>
+                <span>Need 100+ videos?</span>
+                <strong>Extract channels and playlists with BulkTranscripts <span aria-hidden="true">↗</span></strong>
               </a>
             </div>
 
