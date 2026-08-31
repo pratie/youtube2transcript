@@ -34,7 +34,7 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
-  const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-WX5MJ3QVNW";
+  const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-7T65HQ5HLL";
   return <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}><body>
     {children}
     <Script async src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`} />
