@@ -49,6 +49,17 @@ function deviceId(): string {
 }
 
 function track(name: string, detail?: string) {
+  try {
+    const analyticsWindow = typeof window !== "undefined"
+      ? window as unknown as { gtag?: (...args: unknown[]) => void }
+      : {};
+    if (typeof analyticsWindow.gtag === "function") {
+      analyticsWindow.gtag("event", name, {
+        event_category: "youtube2transcript",
+        event_label: detail,
+      });
+    }
+  } catch { /* analytics must never affect the tool */ }
   void fetch(EVENTS_ENDPOINT, {
     method: "POST",
     headers: {

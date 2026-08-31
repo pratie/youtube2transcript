@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import "./globals.css";
@@ -33,5 +34,15 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
-  return <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}><body>{children}</body></html>;
+  const measurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-WX5MJ3QVNW";
+  return <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}><body>
+    {children}
+    <Script async src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`} />
+    <Script id="google-analytics">
+      {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${measurementId}');`}
+    </Script>
+  </body></html>;
 }
