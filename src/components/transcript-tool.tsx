@@ -215,9 +215,15 @@ export default function TranscriptTool() {
 
   async function copyTranscript() {
     if (!transcript) return;
-    await navigator.clipboard.writeText(transcript.text);
+    // Copy what the panel shows: with the timestamps toggle on, each line
+    // carries its clock time, exactly as rendered.
+    const withTimestamps = timestamps && segments.length > 0;
+    const content = withTimestamps
+      ? segments.map((segment) => `[${formatClock(segment.start)}] ${segment.text}`).join("\n")
+      : transcript.text;
+    await navigator.clipboard.writeText(content);
     setCopied(true);
-    track("yt2t_copy_clicked", "txt");
+    track("yt2t_copy_clicked", withTimestamps ? "txt_timestamps" : "txt");
     window.setTimeout(() => setCopied(false), 1800);
   }
 

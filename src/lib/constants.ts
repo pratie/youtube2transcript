@@ -8,5 +8,8 @@ export const EVENTS_ENDPOINT =
   process.env.NEXT_PUBLIC_EVENTS_ENDPOINT ||
   "https://bulktranscripts.co/api/events";
 
+// The extension is live in the Chrome Web Store (Brave installs from the same
+// listing), so the real URL is the default; the env var remains an override.
 export const CHROME_EXTENSION_URL =
-  process.env.NEXT_PUBLIC_CHROME_EXTENSION_URL || "";
+  process.env.NEXT_PUBLIC_CHROME_EXTENSION_URL ||
+  "https://chromewebstore.google.com/detail/alcpcpgkeoddnjgfnminefbmmedpkiho";

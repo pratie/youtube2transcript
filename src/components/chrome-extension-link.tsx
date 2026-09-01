@@ -34,7 +34,7 @@ export default function ChromeExtensionLink({ href }: { href: string }) {
   }
 
   return <a href={href} onClick={trackClick} target="_blank" rel="noopener">
-    <strong>Add to Chrome</strong>
-    <small>Get transcript without leaving YouTube!</small>
+    <strong>Add the browser extension</strong>
+    <small>Works in Chrome &amp; Brave — get transcripts without leaving YouTube!</small>
   </a>;
 }
