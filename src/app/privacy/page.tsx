@@ -11,7 +11,7 @@ export default function Privacy() {
   return (
     <main className="legal-page">
       <Link className="brand" href="/"><span className="brand-mark" aria-hidden="true">≋</span><span>YouTube<span>2</span>Transcript</span></Link>
-      <span className="eyebrow">Last updated August 30, 2026</span>
+      <span className="eyebrow">Last updated September 2, 2026</span>
       <h1>Privacy policy</h1>
       <p>We designed this tool to work without an account and to collect as little personal information as practical.</p>
       <article>
@@ -21,6 +21,7 @@ export default function Privacy() {
         <p>Your browser stores a random device identifier. The service also derives privacy-safe, one-way identifiers from the device and public IP address to enforce fair-use limits and prevent automated abuse. Raw device identifiers and raw IP addresses are not stored with transcript activity.</p>
         <h2>Usage measurements</h2>
         <p>We record limited product events such as a transcript completing, a download format being selected, or a BulkTranscripts link being opened. These events are used to understand reliability and improve the tool. We do not sell personal information.</p>
+        <p>This site also uses Google Analytics 4 to measure page views and the events above in aggregate. Google may set cookies and process your IP address under its own privacy policy; you can block this with a content blocker or Google&rsquo;s opt-out browser add-on, and the tool keeps working without it.</p>
         <h2>Embedded YouTube player</h2>
         <p>Transcript results can include a privacy-enhanced YouTube embed served from youtube-nocookie.com. Playing or interacting with that embed is subject to Google and YouTube’s own privacy practices.</p>
         <h2>Payments and accounts</h2>

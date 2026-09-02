@@ -1,11 +1,8 @@
 "use client";
 
 import { FormEvent, useMemo, useRef, useState } from "react";
-import {
-  BULKTRANSCRIPTS_URL,
-  EVENTS_ENDPOINT,
-  TRANSCRIPT_ENDPOINT,
-} from "@/lib/constants";
+import { BULKTRANSCRIPTS_URL, TRANSCRIPT_ENDPOINT } from "@/lib/constants";
+import { deviceId, track } from "@/lib/tracking";
 import {
   classifyYoutubeInput,
   formatClock,
@@ -23,6 +20,7 @@ type Transcript = {
   video_id: string;
   title: string;
   channel?: string;
+  channel_url?: string;
   duration?: number;
   language?: string;
   text: string;
@@ -37,39 +35,6 @@ type ApiError = {
   sourceType?: InputKind;
   bulkUrl?: string;
 };
-
-function deviceId(): string {
-  const key = "youtube2transcript_device";
-  const stored = window.localStorage.getItem(key);
-  if (stored) return stored;
-  const created = window.crypto?.randomUUID?.() ||
-    `yt2t-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  window.localStorage.setItem(key, created);
-  return created;
-}
-
-function track(name: string, detail?: string) {
-  try {
-    const analyticsWindow = typeof window !== "undefined"
-      ? window as unknown as { gtag?: (...args: unknown[]) => void }
-      : {};
-    if (typeof analyticsWindow.gtag === "function") {
-      analyticsWindow.gtag("event", name, {
-        event_category: "youtube2transcript",
-        event_label: detail,
-      });
-    }
-  } catch { /* analytics must never affect the tool */ }
-  void fetch(EVENTS_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Device-Id": deviceId(),
-    },
-    body: JSON.stringify({ name, detail }),
-    keepalive: true,
-  }).catch(() => undefined);
-}
 
 function timestamp(seconds: number, separator: "," | ".") {
   const millis = Math.max(0, Math.round((seconds || 0) * 1000));
@@ -109,13 +74,37 @@ function download(content: string, filename: string, type = "text/plain") {
   link.href = URL.createObjectURL(new Blob([content], { type: `${type};charset=utf-8` }));
   link.download = filename;
   link.click();
-  URL.revokeObjectURL(link.href);
+  // Firefox/Safari can cancel the download if the URL is revoked synchronously.
+  window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
+const CHANNEL_URL = /^https:\/\/(www\.)?youtube\.com\/(@[\w.-]{1,60}|channel\/UC[\w-]{22}|c\/[\w.-]{1,80}|user\/[\w.-]{1,80})$/;
+const FETCH_TIMEOUT_MS = 75_000;
+const SOURCE = "source=youtube2transcript";
+
+function ChannelUpsell({ channel, channelUrl }: { channel?: string; channelUrl?: string }) {
+  const valid = !!channelUrl && CHANNEL_URL.test(channelUrl);
+  const href = valid
+    ? `${BULKTRANSCRIPTS_URL}/app?mode=channel&url=${encodeURIComponent(channelUrl!)}&${SOURCE}`
+    : `${BULKTRANSCRIPTS_URL}/app?${SOURCE}`;
+  return (
+    <a className="bulk-mini-card" href={href} onClick={() => track("yt2t_channel_upsell_clicked", valid ? "channel" : "generic")}>
+      <span>{valid ? "Want the rest of this channel?" : "Need 100+ videos?"}</span>
+      <strong>
+        {valid && channel
+          ? <>Get every transcript from {channel} <span aria-hidden="true">↗</span></>
+          : <>Extract channels and playlists with BulkTranscripts <span aria-hidden="true">↗</span></>}
+      </strong>
+      <small>30 transcripts free · no card · one AI-ready file</small>
+    </a>
+  );
 }
 
 function BulkHandoff({ kind, url }: { kind: InputKind; url: string }) {
   const isPlaylist = kind === "playlist";
   const source = isPlaylist ? "playlist" : "channel";
-  const href = `${BULKTRANSCRIPTS_URL}/app?mode=${source}&url=${encodeURIComponent(url)}`;
+  const href = `${BULKTRANSCRIPTS_URL}/app?mode=${source}&url=${encodeURIComponent(url)}&${SOURCE}`;
   return (
     <div className="handoff-card" role="status">
       <span className="handoff-kicker">Multiple videos detected</span>
@@ -137,11 +126,14 @@ function BulkHandoff({ kind, url }: { kind: InputKind; url: string }) {
   );
 }
 
-export default function TranscriptTool() {
+export default function TranscriptTool({ idPrefix = "" }: { idPrefix?: string }) {
+  const id = (name: string) => (idPrefix ? `${idPrefix}-${name}` : name);
   const [url, setUrl] = useState("");
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [bulkKind, setBulkKind] = useState<InputKind | null>(null);
   const [error, setError] = useState("");
+  const [errorCode, setErrorCode] = useState("");
+  const [lastVideoId, setLastVideoId] = useState("");
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [timestamps, setTimestamps] = useState(true);
@@ -159,6 +151,7 @@ export default function TranscriptTool() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
+    setErrorCode("");
     setTranscript(null);
     setBulkKind(null);
     setCopied(false);
@@ -175,16 +168,30 @@ export default function TranscriptTool() {
     }
 
     setLoading(true);
+    setLastVideoId(classified.videoId || "");
     track("yt2t_transcript_started", "video");
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
-      const response = await fetch(TRANSCRIPT_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Device-Id": deviceId(),
-        },
-        body: JSON.stringify({ url: classified.normalizedUrl, languages: ["en"] }),
-      });
+      let response: Response;
+      try {
+        response = await fetch(TRANSCRIPT_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Device-Id": deviceId(),
+          },
+          body: JSON.stringify({ url: classified.normalizedUrl, languages: ["en"] }),
+          signal: controller.signal,
+        });
+      } catch (reason) {
+        if (controller.signal.aborted) {
+          setErrorCode("timeout");
+          throw new Error("YouTube took too long to answer. Please try again in a moment.");
+        }
+        setErrorCode("network");
+        throw reason;
+      }
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         const apiError: ApiError = payload?.error || payload;
@@ -192,14 +199,23 @@ export default function TranscriptTool() {
           setBulkKind(apiError.sourceType);
           return;
         }
+        setErrorCode(apiError.code || (response.status === 429 ? "rate_limited" : `http_${response.status}`));
         if (apiError.code === "out_of_credits") {
           throw new Error(
             "This connection has used its free transcript allowance. You can continue with a BulkTranscripts credit pack.",
           );
         }
+        if (response.status === 429) {
+          throw new Error(apiError.message || "Too many requests from this connection. Please wait a minute and try again.");
+        }
         throw new Error(apiError.message || "We could not retrieve that transcript.");
       }
-      setTranscript(payload as Transcript);
+      const result = payload as Transcript;
+      if (!VIDEO_ID.test(result.video_id || "")) {
+        // Never trust an id we did not validate ourselves for the embed URL.
+        result.video_id = classified.videoId || "";
+      }
+      setTranscript(result);
       setPlayerStart(0);
       setQuery("");
       track("yt2t_transcript_completed", payload.cached ? "cached" : "fresh");
@@ -209,6 +225,7 @@ export default function TranscriptTool() {
       setError(message);
       track("yt2t_transcript_failed", "video");
     } finally {
+      window.clearTimeout(timer);
       setLoading(false);
     }
   }
@@ -221,7 +238,12 @@ export default function TranscriptTool() {
     const content = withTimestamps
       ? segments.map((segment) => `[${formatClock(segment.start)}] ${segment.text}`).join("\n")
       : transcript.text;
-    await navigator.clipboard.writeText(content);
+    try {
+      await navigator.clipboard.writeText(content);
+    } catch {
+      setError("Copying was blocked by the browser. Select the transcript text and copy it manually.");
+      return;
+    }
     setCopied(true);
     track("yt2t_copy_clicked", withTimestamps ? "txt_timestamps" : "txt");
     window.setTimeout(() => setCopied(false), 1800);
@@ -242,16 +264,16 @@ export default function TranscriptTool() {
   }
 
   return (
-    <div className="tool-shell" id="tool">
+    <div className="tool-shell" id={id("tool")}>
       <form className="url-form" onSubmit={submit} noValidate>
-        <label className="sr-only" htmlFor="youtube-url">YouTube video URL</label>
+        <label className="sr-only" htmlFor={id("youtube-url")}>YouTube video URL</label>
         <div className="input-wrap">
           <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22">
             <path d="M10.6 13.4a2 2 0 0 0 2.8 0l3-3a2 2 0 0 0-2.8-2.8l-1 1" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             <path d="M13.4 10.6a2 2 0 0 0-2.8 0l-3 3a2 2 0 1 0 2.8 2.8l1-1" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
           <input
-            id="youtube-url"
+            id={id("youtube-url")}
             type="url"
             inputMode="url"
             autoComplete="url"
@@ -259,7 +281,7 @@ export default function TranscriptTool() {
             value={url}
             onChange={(event) => setUrl(event.target.value)}
             onPaste={() => track("yt2t_url_pasted", "video")}
-            aria-describedby="tool-note"
+            aria-describedby={id("tool-note")}
           />
         </div>
         <button className="button button-primary submit-button" type="submit" disabled={loading}>
@@ -267,7 +289,7 @@ export default function TranscriptTool() {
           {loading ? "Getting transcript…" : "Get transcript"}
         </button>
       </form>
-      <p className="tool-note" id="tool-note">
+      <p className="tool-note" id={id("tool-note")}>
         One video at a time · No signup · Copy or download instantly
       </p>
 
@@ -276,9 +298,14 @@ export default function TranscriptTool() {
           <div className="error-card">
             <strong>We couldn’t complete that request.</strong>
             <p>{error}</p>
-            {error.includes("allowance") ? (
-              <a className="text-link" href={`${BULKTRANSCRIPTS_URL}/#pricing`}>
-                View one-time credit packs <span aria-hidden="true">→</span>
+            {errorCode === "out_of_credits" ? (
+              <a className="text-link" href={`${BULKTRANSCRIPTS_URL}/?${SOURCE}#pricing`} onClick={() => track("yt2t_wall_pricing_clicked", "out_of_credits")}>
+                View one-time credit packs (from $4.99) <span aria-hidden="true">→</span>
+              </a>
+            ) : null}
+            {errorCode === "rate_limited" ? (
+              <a className="text-link" href={`${BULKTRANSCRIPTS_URL}/app?${SOURCE}${lastVideoId ? `&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${lastVideoId}`)}` : ""}`} onClick={() => track("yt2t_wall_pricing_clicked", "rate_limited")}>
+                Doing this for many videos? BulkTranscripts does channels and playlists in one run <span aria-hidden="true">→</span>
               </a>
             ) : null}
           </div>
@@ -308,7 +335,7 @@ export default function TranscriptTool() {
               <div className="video-frame">
                 <iframe
                   key={`${transcript.video_id}-${playerStart}`}
-                  src={`https://www.youtube-nocookie.com/embed/${transcript.video_id}?start=${playerStart}&autoplay=${playerStart ? 1 : 0}`}
+                  src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(transcript.video_id)}?start=${playerStart}&autoplay=${playerStart ? 1 : 0}`}
                   title={`YouTube video: ${transcript.title}`}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -322,10 +349,7 @@ export default function TranscriptTool() {
                   {segments.length ? <button type="button" onClick={() => downloadText("vtt")}>VTT</button> : null}
                 </div>
               </div>
-              <a className="bulk-mini-card" href={`${BULKTRANSCRIPTS_URL}/?source=youtube2transcript#pricing`}>
-                <span>Need 100+ videos?</span>
-                <strong>Extract channels and playlists with BulkTranscripts <span aria-hidden="true">↗</span></strong>
-              </a>
+              <ChannelUpsell channel={transcript.channel} channelUrl={transcript.channel_url} />
             </div>
 
             <div className="transcript-panel">

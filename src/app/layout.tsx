@@ -9,7 +9,10 @@ const geistMono = Geist_Mono({ variable: "--font-mono", subsets: ["latin"], disp
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "YouTube to Transcript – Free YouTube Transcript Generator",
+  title: {
+    default: "YouTube to Transcript – Free YouTube Transcript Generator",
+    template: "%s · YouTube2Transcript",
+  },
   description: "Convert a YouTube video to text for free. Paste a video URL to get a readable transcript with timestamps, then copy or download TXT, SRT and VTT.",
   applicationName: SITE_NAME,
   authors: [{ name: "BulkTranscripts", url: "https://bulktranscripts.co" }],
@@ -19,11 +22,11 @@ export const metadata: Metadata = {
   keywords: ["YouTube to transcript", "YouTube transcript generator", "YouTube transcript downloader", "YouTube to text", "YouTube transcript with timestamps"],
   openGraph: {
     type: "website", url: SITE_URL, siteName: SITE_NAME,
-    title: "YouTube to Transcript – Free Transcript Generator",
+    title: "YouTube to Transcript – Free YouTube Transcript Generator",
     description: "Paste one YouTube video. Get clean, timestamped text you can copy or download.",
   },
   twitter: {
-    card: "summary_large_image", title: "YouTube to Transcript – Free Transcript Generator",
+    card: "summary_large_image", title: "YouTube to Transcript – Free YouTube Transcript Generator",
     description: "Paste one YouTube video. Get clean, timestamped text you can copy or download.",
   },
   category: "technology",
