@@ -299,7 +299,7 @@ export default function TranscriptTool({ idPrefix = "" }: { idPrefix?: string })
             <strong>We couldn’t complete that request.</strong>
             <p>{error}</p>
             {errorCode === "out_of_credits" ? (
-              <a className="text-link" href={`${BULKTRANSCRIPTS_URL}/?${SOURCE}#pricing`} onClick={() => track("yt2t_wall_pricing_clicked", "out_of_credits")}>
+              <a className="text-link" href={`${BULKTRANSCRIPTS_URL}/app?${SOURCE}&upgrade=1&remaining=1&max=1&format=txt&url=${encodeURIComponent(lastVideoId ? `https://www.youtube.com/watch?v=${lastVideoId}` : url)}`} onClick={() => track("yt2t_wall_pricing_clicked", "out_of_credits")}>
                 View one-time credit packs (from $4.99) <span aria-hidden="true">→</span>
               </a>
             ) : null}
