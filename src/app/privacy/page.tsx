@@ -27,7 +27,7 @@ export default function Privacy() {
         <h2>Payments and accounts</h2>
         <p>YouTube2Transcript does not collect payment-card information. If you follow a link to BulkTranscripts and purchase credits, its payment provider and separate privacy terms apply.</p>
         <h2>Contact</h2>
-        <p>Questions or deletion requests can be sent to <a href="mailto:sneakyguysaas@gmail.com">sneakyguysaas@gmail.com</a>.</p>
+        <p>Questions or deletion requests can be sent to <a href="mailto:hello@bulktranscripts.co">hello@bulktranscripts.co</a>.</p>
       </article>
       <Link className="back-home" href="/">← Back to the transcript tool</Link>
     </main>

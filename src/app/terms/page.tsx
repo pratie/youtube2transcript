@@ -30,7 +30,7 @@ export default function Terms() {
         <h2>Changes</h2>
         <p>We may update the tool and these terms as the service evolves. Continued use after an update means you accept the revised terms.</p>
         <h2>Contact</h2>
-        <p>Questions can be sent to <a href="mailto:sneakyguysaas@gmail.com">sneakyguysaas@gmail.com</a>.</p>
+        <p>Questions can be sent to <a href="mailto:hello@bulktranscripts.co">hello@bulktranscripts.co</a>.</p>
       </article>
       <Link className="back-home" href="/">← Back to the transcript tool</Link>
     </main>
